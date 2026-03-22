@@ -43,6 +43,6 @@ specdrift check docs/spec.md
 
 ## Annotation Format
 
-See [docs/annotation-format.md](docs/annotation-format.md) for the full format reference.
+See [docs/format/annotation-format.md](docs/format/annotation-format.md) for the full format reference.
 
-Japanese version: [docs/annotation-format.ja.md](docs/annotation-format.ja.md)
+Japanese version: [docs/format/annotation-format.ja.md](docs/format/annotation-format.ja.md)

@@ -43,6 +43,6 @@ specdrift check docs/spec.md
 
 ## アノテーションフォーマット
 
-詳細は [docs/annotation-format.ja.md](docs/annotation-format.ja.md) を参照。
+詳細は [docs/format/annotation-format.ja.md](docs/format/annotation-format.ja.md) を参照。
 
-English version: [docs/annotation-format.md](docs/annotation-format.md)
+English version: [docs/format/annotation-format.md](docs/format/annotation-format.md)
