@@ -3,11 +3,12 @@ package internal
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 var (
-	declRe        = regexp.MustCompile(`<!--\s*spec-drift\s*-->`)
+	declRe        = regexp.MustCompile(`<!--\s*spec-drift(?:\s+v(\d+))?\s*-->`)
 	sourceOpenRe  = regexp.MustCompile(`<!--\s*source:\s*(.*?)\s*-->`)
 	sourceCloseRe = regexp.MustCompile(`<!--\s*/source\s*-->`)
 	sourceRefRe   = regexp.MustCompile(`(\S+)@([a-f0-9]{8})`)
@@ -51,9 +52,13 @@ type Annotation struct {
 	Children []*Annotation
 }
 
+// CurrentVersion is the latest supported spec-drift format version.
+const CurrentVersion = 1
+
 // ParseResult holds the result of parsing a spec file's annotations.
 type ParseResult struct {
 	Declared    bool
+	Version     int // 0 if not declared, otherwise 1+
 	Annotations []*Annotation
 }
 
@@ -64,13 +69,22 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 	var roots []*Annotation
 	var stack []*Annotation
 	declared := false
+	version := 0
 
 	for i, line := range lines {
 		lineNum := i + 1
 
-		if !declared && declRe.MatchString(line) {
-			declared = true
-			continue
+		if !declared {
+			if m := declRe.FindStringSubmatch(line); m != nil {
+				declared = true
+				if m[1] != "" {
+					v, _ := strconv.Atoi(m[1])
+					version = v
+				} else {
+					version = 1
+				}
+				continue
+			}
 		}
 
 		if m := sourceOpenRe.FindStringSubmatch(line); m != nil {
@@ -113,6 +127,7 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 
 	return &ParseResult{
 		Declared:    declared,
+		Version:     version,
 		Annotations: roots,
 	}, nil
 }

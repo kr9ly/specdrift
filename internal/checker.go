@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -39,6 +40,14 @@ func Check(specFile string, basePath string) *CheckResult {
 
 	if !parsed.Declared {
 		return &CheckResult{SpecFile: specFile, Status: CheckSkipped}
+	}
+
+	if parsed.Version > CurrentVersion {
+		return &CheckResult{
+			SpecFile: specFile,
+			Status:   CheckError,
+			Error:    fmt.Errorf("unsupported version v%d (this tool supports up to v%d)", parsed.Version, CurrentVersion),
+		}
 	}
 
 	if len(parsed.Annotations) == 0 {

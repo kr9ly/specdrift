@@ -171,8 +171,44 @@ func TestParseAnnotations_declared(t *testing.T) {
 	if !result.Declared {
 		t.Error("expected Declared = true")
 	}
+	if result.Version != 1 {
+		t.Errorf("version = %d, want 1", result.Version)
+	}
 	if len(result.Annotations) != 1 {
 		t.Fatalf("expected 1 annotation, got %d", len(result.Annotations))
+	}
+}
+
+func TestParseAnnotations_declared_with_version(t *testing.T) {
+	content := `<!-- spec-drift v1 -->
+
+<!-- source: a.ts@11111111 -->
+<!-- /source -->
+`
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Declared {
+		t.Error("expected Declared = true")
+	}
+	if result.Version != 1 {
+		t.Errorf("version = %d, want 1", result.Version)
+	}
+}
+
+func TestParseAnnotations_future_version(t *testing.T) {
+	content := `<!-- spec-drift v99 -->
+
+<!-- source: a.ts@11111111 -->
+<!-- /source -->
+`
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Version != 99 {
+		t.Errorf("version = %d, want 99", result.Version)
 	}
 }
 
