@@ -46,3 +46,9 @@ specdrift check docs/spec.md
 See [docs/format/annotation-format.md](docs/format/annotation-format.md) for the full format reference.
 
 Japanese version: [docs/format/annotation-format.ja.md](docs/format/annotation-format.ja.md)
+
+## Agent Integration Guide
+
+See [docs/guide/agent-setup.md](docs/guide/agent-setup.md) for how to set up specdrift with AI coding agents.
+
+Japanese version: [docs/guide/agent-setup.ja.md](docs/guide/agent-setup.ja.md)
