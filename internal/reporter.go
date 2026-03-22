@@ -10,10 +10,10 @@ import (
 func ReportText(w io.Writer, result *CheckResult) {
 	switch result.Status {
 	case CheckSkipped:
-		fmt.Fprintf(w, "%s: skipped (no <!-- spec-drift --> declaration)\n", result.SpecFile)
+		fmt.Fprintf(w, "%s: skipped (no <!-- specdrift --> declaration)\n", result.SpecFile)
 		return
 	case CheckEmpty:
-		fmt.Fprintf(w, "%s: warning: declared <!-- spec-drift --> but no source annotations found\n", result.SpecFile)
+		fmt.Fprintf(w, "%s: warning: declared <!-- specdrift --> but no source annotations found\n", result.SpecFile)
 		return
 	case CheckError:
 		fmt.Fprintf(w, "%s: error: %v\n", result.SpecFile, result.Error)
@@ -23,9 +23,9 @@ func ReportText(w io.Writer, result *CheckResult) {
 	fmt.Fprintf(w, "%s:\n", result.SpecFile)
 	reportAnnotations(w, result.Annotations, 1)
 
-	ok, drift, missing := result.CountByStatus()
-	total := ok + drift + missing
-	fmt.Fprintf(w, "\n%d drifted, %d ok, %d missing (total: %d)\n", drift, ok, missing, total)
+	ok, drift, missing, todo := result.CountByStatus()
+	total := ok + drift + missing + todo
+	fmt.Fprintf(w, "\n%d drifted, %d ok, %d missing, %d todo (total: %d)\n", drift, ok, missing, todo, total)
 }
 
 func reportAnnotations(w io.Writer, annotations []*Annotation, depth int) {
@@ -50,6 +50,12 @@ func reportAnnotations(w io.Writer, annotations []*Annotation, depth int) {
 					indent, prefix, ref.Path, ref.ExpectedHash, ref.ActualHash, a.Line)
 			case StatusMissing:
 				fmt.Fprintf(w, "%s%s [MISSING] %s line %d\n", indent, prefix, ref.Path, a.Line)
+			case StatusTodo:
+				if ref.Path == "" {
+					fmt.Fprintf(w, "%s%s [TODO] (no path) line %d\n", indent, prefix, a.Line)
+				} else {
+					fmt.Fprintf(w, "%s%s [TODO] %s line %d\n", indent, prefix, ref.Path, a.Line)
+				}
 			}
 		}
 

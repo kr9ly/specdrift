@@ -159,7 +159,7 @@ func TestParseAnnotations_deep_nesting(t *testing.T) {
 }
 
 func TestParseAnnotations_declared(t *testing.T) {
-	content := `<!-- spec-drift -->
+	content := `<!-- specdrift -->
 
 <!-- source: a.ts@11111111 -->
 <!-- /source -->
@@ -180,7 +180,7 @@ func TestParseAnnotations_declared(t *testing.T) {
 }
 
 func TestParseAnnotations_declared_with_version(t *testing.T) {
-	content := `<!-- spec-drift v1 -->
+	content := `<!-- specdrift v1 -->
 
 <!-- source: a.ts@11111111 -->
 <!-- /source -->
@@ -198,7 +198,7 @@ func TestParseAnnotations_declared_with_version(t *testing.T) {
 }
 
 func TestParseAnnotations_future_version(t *testing.T) {
-	content := `<!-- spec-drift v99 -->
+	content := `<!-- specdrift v99 -->
 
 <!-- source: a.ts@11111111 -->
 <!-- /source -->
@@ -225,8 +225,73 @@ func TestParseAnnotations_not_declared(t *testing.T) {
 	}
 }
 
+func TestParseAnnotations_bare_todo(t *testing.T) {
+	content := `<!-- source: TODO -->
+Some spec without implementation yet.
+<!-- /source -->
+`
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := result.Annotations[0]
+	if len(a.Sources) != 1 {
+		t.Fatalf("expected 1 source, got %d", len(a.Sources))
+	}
+	if a.Sources[0].Path != "" {
+		t.Errorf("path = %q, want empty", a.Sources[0].Path)
+	}
+	if a.Sources[0].Status != StatusTodo {
+		t.Errorf("status = %v, want StatusTodo", a.Sources[0].Status)
+	}
+}
+
+func TestParseAnnotations_path_todo(t *testing.T) {
+	content := `<!-- source: handler.go@TODO -->
+Handler spec.
+<!-- /source -->
+`
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := result.Annotations[0]
+	if a.Sources[0].Path != "handler.go" {
+		t.Errorf("path = %q, want %q", a.Sources[0].Path, "handler.go")
+	}
+	if a.Sources[0].ExpectedHash != "" {
+		t.Errorf("hash = %q, want empty", a.Sources[0].ExpectedHash)
+	}
+	if a.Sources[0].Status != StatusTodo {
+		t.Errorf("status = %v, want StatusTodo", a.Sources[0].Status)
+	}
+}
+
+func TestParseAnnotations_mixed_hash_and_todo(t *testing.T) {
+	content := `<!-- source: a.ts@11111111, b.ts@TODO -->
+<!-- /source -->
+`
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := result.Annotations[0]
+	if len(a.Sources) != 2 {
+		t.Fatalf("expected 2 sources, got %d", len(a.Sources))
+	}
+	if a.Sources[0].ExpectedHash != "11111111" {
+		t.Errorf("first hash = %q, want %q", a.Sources[0].ExpectedHash, "11111111")
+	}
+	if a.Sources[0].Status != StatusUnchecked {
+		t.Errorf("first status = %v, want StatusUnchecked", a.Sources[0].Status)
+	}
+	if a.Sources[1].Status != StatusTodo {
+		t.Errorf("second status = %v, want StatusTodo", a.Sources[1].Status)
+	}
+}
+
 func TestParseAnnotations_declared_no_annotations(t *testing.T) {
-	content := `<!-- spec-drift -->
+	content := `<!-- specdrift -->
 
 This file has no source annotations.
 `

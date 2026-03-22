@@ -13,7 +13,7 @@ const (
 	CheckOK        CheckStatus = iota
 	CheckDrifted                       // at least one source drifted or missing
 	CheckEmpty                         // declared but no annotations
-	CheckSkipped                       // no spec-drift declaration
+	CheckSkipped                       // no specdrift declaration
 	CheckError                         // parse or I/O error
 )
 
@@ -62,8 +62,8 @@ func Check(specFile string, basePath string) *CheckResult {
 		Annotations: parsed.Annotations,
 	}
 
-	_, drift, missing := result.CountByStatus()
-	if drift > 0 || missing > 0 {
+	_, drift, missing, todo := result.CountByStatus()
+	if drift > 0 || missing > 0 || todo > 0 {
 		result.Status = CheckDrifted
 	}
 
@@ -74,6 +74,9 @@ func checkAnnotations(annotations []*Annotation, basePath string) {
 	for _, a := range annotations {
 		for i := range a.Sources {
 			ref := &a.Sources[i]
+			if ref.Status == StatusTodo {
+				continue
+			}
 			fullPath := filepath.Join(basePath, ref.Path)
 			hash, err := HashFile(fullPath)
 			if err != nil {
@@ -91,13 +94,13 @@ func checkAnnotations(annotations []*Annotation, basePath string) {
 	}
 }
 
-// CountByStatus returns counts of OK, DRIFT, and MISSING source refs (flattened).
-func (r *CheckResult) CountByStatus() (ok, drift, missing int) {
-	countAnnotations(r.Annotations, &ok, &drift, &missing)
+// CountByStatus returns counts of OK, DRIFT, MISSING, and TODO source refs (flattened).
+func (r *CheckResult) CountByStatus() (ok, drift, missing, todo int) {
+	countAnnotations(r.Annotations, &ok, &drift, &missing, &todo)
 	return
 }
 
-func countAnnotations(annotations []*Annotation, ok, drift, missing *int) {
+func countAnnotations(annotations []*Annotation, ok, drift, missing, todo *int) {
 	for _, a := range annotations {
 		for _, ref := range a.Sources {
 			switch ref.Status {
@@ -107,8 +110,10 @@ func countAnnotations(annotations []*Annotation, ok, drift, missing *int) {
 				*drift++
 			case StatusMissing:
 				*missing++
+			case StatusTodo:
+				*todo++
 			}
 		}
-		countAnnotations(a.Children, ok, drift, missing)
+		countAnnotations(a.Children, ok, drift, missing, todo)
 	}
 }

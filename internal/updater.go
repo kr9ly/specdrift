@@ -34,6 +34,12 @@ func Update(specFile string, basePath string) (*UpdateResult, error) {
 			return match
 		}
 		refsStr := m[1]
+
+		// Bare TODO — leave as-is
+		if todoBareRe.MatchString(refsStr) {
+			return match
+		}
+
 		refs := sourceRefRe.FindAllStringSubmatch(refsStr, -1)
 		if len(refs) == 0 {
 			return match
@@ -43,6 +49,19 @@ func Update(specFile string, basePath string) (*UpdateResult, error) {
 		for _, ref := range refs {
 			path := ref[1]
 			oldHash := ref[2]
+
+			if oldHash == "TODO" {
+				fullPath := filepath.Join(basePath, path)
+				newHash, err := HashFile(fullPath)
+				if err != nil {
+					// File not yet created — keep TODO
+					parts = append(parts, fmt.Sprintf("%s@TODO", path))
+					continue
+				}
+				updated++
+				parts = append(parts, fmt.Sprintf("%s@%s", path, newHash))
+				continue
+			}
 
 			fullPath := filepath.Join(basePath, path)
 			newHash, err := HashFile(fullPath)

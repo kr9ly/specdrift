@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	declRe        = regexp.MustCompile(`<!--\s*spec-drift(?:\s+v(\d+))?\s*-->`)
+	declRe        = regexp.MustCompile(`<!--\s*specdrift(?:\s+v(\d+))?\s*-->`)
 	sourceOpenRe  = regexp.MustCompile(`<!--\s*source:\s*(.*?)\s*-->`)
 	sourceCloseRe = regexp.MustCompile(`<!--\s*/source\s*-->`)
-	sourceRefRe   = regexp.MustCompile(`(\S+)@([a-f0-9]{8})`)
+	sourceRefRe   = regexp.MustCompile(`(\S+)@([a-f0-9]{8}|TODO)`)
+	todoBareRe    = regexp.MustCompile(`^\s*TODO\s*$`)
 )
 
 // Status represents the drift check result for a source reference.
@@ -22,6 +23,7 @@ const (
 	StatusOK
 	StatusDrift
 	StatusMissing
+	StatusTodo
 )
 
 func (s Status) String() string {
@@ -32,6 +34,8 @@ func (s Status) String() string {
 		return "DRIFT"
 	case StatusMissing:
 		return "MISSING"
+	case StatusTodo:
+		return "TODO"
 	default:
 		return "UNCHECKED"
 	}
@@ -52,7 +56,7 @@ type Annotation struct {
 	Children []*Annotation
 }
 
-// CurrentVersion is the latest supported spec-drift format version.
+// CurrentVersion is the latest supported specdrift format version.
 const CurrentVersion = 1
 
 // ParseResult holds the result of parsing a spec file's annotations.
@@ -88,18 +92,29 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 		}
 
 		if m := sourceOpenRe.FindStringSubmatch(line); m != nil {
-			refs := sourceRefRe.FindAllStringSubmatch(m[1], -1)
-			if len(refs) == 0 {
-				return nil, fmt.Errorf("line %d: source tag contains no valid path@hash references", lineNum)
-			}
 			a := &Annotation{
 				Line: lineNum,
 			}
-			for _, ref := range refs {
+			if todoBareRe.MatchString(m[1]) {
 				a.Sources = append(a.Sources, SourceRef{
-					Path:         ref[1],
-					ExpectedHash: ref[2],
+					Status: StatusTodo,
 				})
+			} else {
+				refs := sourceRefRe.FindAllStringSubmatch(m[1], -1)
+				if len(refs) == 0 {
+					return nil, fmt.Errorf("line %d: source tag contains no valid path@hash references", lineNum)
+				}
+				for _, ref := range refs {
+					sr := SourceRef{
+						Path:         ref[1],
+						ExpectedHash: ref[2],
+					}
+					if ref[2] == "TODO" {
+						sr.ExpectedHash = ""
+						sr.Status = StatusTodo
+					}
+					a.Sources = append(a.Sources, sr)
+				}
 			}
 			if len(stack) > 0 {
 				parent := stack[len(stack)-1]

@@ -4,21 +4,23 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kr9ly/spec-drift/internal"
+	"github.com/kr9ly/specdrift/internal"
 )
 
-const usage = `spec-drift - detect drift between specs and source code
+const usage = `specdrift - detect drift between specs and source code
 
 Usage:
-  spec-drift check [--base <dir>] <file>...
-  spec-drift update [--base <dir>] <file>...
+  specdrift init
+  specdrift check [--base <dir>] <file>...
+  specdrift update [--base <dir>] <file>...
 
 Commands:
+  init    Create a .specdrift file in the current directory
   check   Check spec files for drifted source annotations
   update  Update source annotation hashes to match current files
 
 Options:
-  --base <dir>  Base directory for resolving source paths (default: current directory)
+  --base <dir>  Base directory for resolving source paths (default: .specdrift location or current directory)
 `
 
 func main() {
@@ -30,7 +32,14 @@ func main() {
 	cmd := os.Args[1]
 	args := os.Args[2:]
 
-	basePath := "."
+	switch cmd {
+	case "init":
+		runInit()
+		return
+	default:
+	}
+
+	var baseFlag string
 	var files []string
 
 	for i := 0; i < len(args); i++ {
@@ -39,7 +48,7 @@ func main() {
 				fmt.Fprintln(os.Stderr, "error: --base requires a directory argument")
 				os.Exit(1)
 			}
-			basePath = args[i+1]
+			baseFlag = args[i+1]
 			i++
 		} else {
 			files = append(files, args[i])
@@ -50,6 +59,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "error: no spec files specified")
 		os.Exit(1)
 	}
+
+	basePath := resolveBasePath(baseFlag)
 
 	switch cmd {
 	case "check":
@@ -62,6 +73,29 @@ func main() {
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(1)
 	}
+}
+
+func resolveBasePath(baseFlag string) string {
+	if baseFlag != "" {
+		return baseFlag
+	}
+	if root := internal.FindProjectRoot("."); root != "" {
+		return root
+	}
+	return "."
+}
+
+func runInit() {
+	err := internal.Init(".")
+	if err != nil {
+		if os.IsExist(err) {
+			fmt.Fprintln(os.Stderr, ".specdrift already exists")
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("created .specdrift")
 }
 
 func runCheck(files []string, basePath string) int {
@@ -89,7 +123,7 @@ func runUpdate(files []string, basePath string) {
 			continue
 		}
 		if r.Skipped {
-			fmt.Printf("%s: skipped (no <!-- spec-drift --> declaration)\n", f)
+			fmt.Printf("%s: skipped (no <!-- specdrift --> declaration)\n", f)
 		} else if r.Updated > 0 {
 			fmt.Printf("%s: updated %d annotation(s)\n", f, r.Updated)
 		} else {

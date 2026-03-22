@@ -1,3 +1,3 @@
 # Just a regular doc
 
-No spec-drift declaration here.
+No specdrift declaration here.
