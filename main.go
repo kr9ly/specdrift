@@ -11,8 +11,8 @@ const usage = `specdrift - detect drift between specs and source code
 
 Usage:
   specdrift init
-  specdrift check [--base <dir>] <file>...
-  specdrift update [--base <dir>] <file>...
+  specdrift check [--base <dir>] <file|glob>...
+  specdrift update [--base <dir>] <file|glob>...
 
 Commands:
   init    Create a .specdrift file in the current directory
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	var baseFlag string
-	var files []string
+	var rawArgs []string
 
 	for i := 0; i < len(args); i++ {
 		if args[i] == "--base" {
@@ -51,12 +51,34 @@ func main() {
 			baseFlag = args[i+1]
 			i++
 		} else {
-			files = append(files, args[i])
+			rawArgs = append(rawArgs, args[i])
+		}
+	}
+
+	if len(rawArgs) == 0 {
+		fmt.Fprintln(os.Stderr, "error: no spec files specified")
+		os.Exit(1)
+	}
+
+	var files []string
+	for _, arg := range rawArgs {
+		if internal.IsGlobPattern(arg) {
+			matches, err := internal.ExpandGlob(arg)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: glob %q: %v\n", arg, err)
+				os.Exit(1)
+			}
+			if len(matches) == 0 {
+				fmt.Fprintf(os.Stderr, "warning: glob %q matched no files\n", arg)
+			}
+			files = append(files, matches...)
+		} else {
+			files = append(files, arg)
 		}
 	}
 
 	if len(files) == 0 {
-		fmt.Fprintln(os.Stderr, "error: no spec files specified")
+		fmt.Fprintln(os.Stderr, "error: no spec files matched")
 		os.Exit(1)
 	}
 
