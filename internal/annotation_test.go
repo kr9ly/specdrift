@@ -290,6 +290,64 @@ func TestParseAnnotations_mixed_hash_and_todo(t *testing.T) {
 	}
 }
 
+func TestParseAnnotations_fenced_code_block_skipped(t *testing.T) {
+	content := "<!-- specdrift -->\n\n```\n<!-- source: a.ts@11111111 -->\n<!-- /source -->\n```\n"
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Annotations) != 0 {
+		t.Errorf("expected 0 annotations inside code block, got %d", len(result.Annotations))
+	}
+}
+
+func TestParseAnnotations_tilde_fence_skipped(t *testing.T) {
+	content := "~~~\n<!-- source: a.ts@11111111 -->\n<!-- /source -->\n~~~\n"
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Annotations) != 0 {
+		t.Errorf("expected 0 annotations inside tilde fence, got %d", len(result.Annotations))
+	}
+}
+
+func TestParseAnnotations_inline_code_skipped(t *testing.T) {
+	content := "<!-- specdrift -->\n\nUse `<!-- source: a.ts@11111111 -->` to annotate.\n"
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Annotations) != 0 {
+		t.Errorf("expected 0 annotations inside inline code, got %d", len(result.Annotations))
+	}
+}
+
+func TestParseAnnotations_double_backtick_inline_code(t *testing.T) {
+	content := "<!-- specdrift -->\n\nUse `` <!-- source: a.ts@11111111 --> `` in docs.\n"
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Annotations) != 0 {
+		t.Errorf("expected 0 annotations inside double-backtick inline code, got %d", len(result.Annotations))
+	}
+}
+
+func TestParseAnnotations_annotation_after_code_block(t *testing.T) {
+	content := "<!-- specdrift -->\n\n```\nignored\n```\n\n<!-- source: a.ts@11111111 -->\nreal spec\n<!-- /source -->\n"
+	result, err := ParseAnnotations(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Annotations) != 1 {
+		t.Fatalf("expected 1 annotation after code block, got %d", len(result.Annotations))
+	}
+	if result.Annotations[0].Sources[0].Path != "a.ts" {
+		t.Errorf("path = %q, want %q", result.Annotations[0].Sources[0].Path, "a.ts")
+	}
+}
+
 func TestParseAnnotations_declared_no_annotations(t *testing.T) {
 	content := `<!-- specdrift -->
 

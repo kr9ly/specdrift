@@ -13,6 +13,7 @@ var (
 	sourceCloseRe = regexp.MustCompile(`<!--\s*/source\s*-->`)
 	sourceRefRe   = regexp.MustCompile(`(\S+)@([a-f0-9]{8}|TODO)`)
 	todoBareRe    = regexp.MustCompile(`^\s*TODO\s*$`)
+	fenceRe       = regexp.MustCompile("^\\s*(`{3,}|~{3,})")
 )
 
 // Status represents the drift check result for a source reference.
@@ -74,12 +75,32 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 	var stack []*Annotation
 	declared := false
 	version := 0
+	inFence := false
+	fenceMarker := ""
 
 	for i, line := range lines {
 		lineNum := i + 1
 
+		// Skip fenced code blocks (``` or ~~~)
+		if fm := fenceRe.FindStringSubmatch(line); fm != nil {
+			if !inFence {
+				inFence = true
+				fenceMarker = fm[1]
+			} else if fm[1][0] == fenceMarker[0] && len(fm[1]) >= len(fenceMarker) {
+				inFence = false
+				fenceMarker = ""
+			}
+			continue
+		}
+		if inFence {
+			continue
+		}
+
+		// Strip inline code spans before matching annotations
+		stripped := stripInlineCode(line)
+
 		if !declared {
-			if m := declRe.FindStringSubmatch(line); m != nil {
+			if m := declRe.FindStringSubmatch(stripped); m != nil {
 				declared = true
 				if m[1] != "" {
 					v, _ := strconv.Atoi(m[1])
@@ -91,7 +112,7 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 			}
 		}
 
-		if m := sourceOpenRe.FindStringSubmatch(line); m != nil {
+		if m := sourceOpenRe.FindStringSubmatch(stripped); m != nil {
 			a := &Annotation{
 				Line: lineNum,
 			}
@@ -126,7 +147,7 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 			continue
 		}
 
-		if sourceCloseRe.MatchString(line) {
+		if sourceCloseRe.MatchString(stripped) {
 			if len(stack) == 0 {
 				return nil, fmt.Errorf("line %d: unexpected closing tag <!-- /source --> without matching open tag", lineNum)
 			}
@@ -145,4 +166,36 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 		Version:     version,
 		Annotations: roots,
 	}, nil
+}
+
+// stripInlineCode removes inline code spans (backtick-delimited) from a line
+// so that annotations inside them are not matched.
+func stripInlineCode(line string) string {
+	result := []byte(line)
+	i := 0
+	for i < len(result) {
+		if result[i] == '`' {
+			// Count opening backticks
+			start := i
+			ticks := 0
+			for i < len(result) && result[i] == '`' {
+				ticks++
+				i++
+			}
+			// Find matching closing backticks
+			closer := strings.Repeat("`", ticks)
+			end := strings.Index(string(result[i:]), closer)
+			if end >= 0 {
+				// Replace the entire span (including delimiters) with spaces
+				for j := start; j < i+end+ticks; j++ {
+					result[j] = ' '
+				}
+				i = i + end + ticks
+			}
+			// If no closing backticks found, leave as-is
+		} else {
+			i++
+		}
+	}
+	return string(result)
 }
