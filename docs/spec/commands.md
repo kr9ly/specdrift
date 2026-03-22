@@ -30,7 +30,7 @@ Glob expansion is handled internally, not delegated to the shell.
 
 ## check
 
-<!-- source: internal/checker.go@33691616 -->
+<!-- source: internal/checker.go@913de33e -->
 
 Parses each spec file and compares source annotation hashes against actual file hashes.
 

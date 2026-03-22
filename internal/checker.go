@@ -10,11 +10,11 @@ import (
 type CheckStatus int
 
 const (
-	CheckOK        CheckStatus = iota
-	CheckDrifted                       // at least one source drifted or missing
-	CheckEmpty                         // declared but no annotations
-	CheckSkipped                       // no specdrift declaration
-	CheckError                         // parse or I/O error
+	CheckOK      CheckStatus = iota
+	CheckDrifted             // at least one source drifted or missing
+	CheckEmpty               // declared but no annotations
+	CheckSkipped             // no specdrift declaration
+	CheckError               // parse or I/O error
 )
 
 // CheckResult holds the check results for a single spec file.
