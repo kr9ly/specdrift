@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/kr9ly/specdrift/internal"
 )
@@ -13,14 +14,17 @@ Usage:
   specdrift init
   specdrift check [--base <dir>] <file|glob>...
   specdrift update [--base <dir>] <file|glob>...
+  specdrift graph [--base <dir>] [--reverse] <file|glob>...
 
 Commands:
   init    Create a .specdrift file in the current directory
   check   Check spec files for drifted source annotations
   update  Update source annotation hashes to match current files
+  graph   Show dependency graph between spec files and source files
 
 Options:
   --base <dir>  Base directory for resolving source paths (default: .specdrift location or current directory)
+  --reverse     Show reverse graph (source -> specs that reference it)
 `
 
 func main() {
@@ -40,6 +44,7 @@ func main() {
 	}
 
 	var baseFlag string
+	var reverseFlag bool
 	var rawArgs []string
 
 	for i := 0; i < len(args); i++ {
@@ -50,6 +55,8 @@ func main() {
 			}
 			baseFlag = args[i+1]
 			i++
+		} else if args[i] == "--reverse" {
+			reverseFlag = true
 		} else {
 			rawArgs = append(rawArgs, args[i])
 		}
@@ -90,6 +97,8 @@ func main() {
 		os.Exit(exitCode)
 	case "update":
 		runUpdate(files, basePath)
+	case "graph":
+		runGraph(files, basePath, reverseFlag)
 	default:
 		fmt.Fprintf(os.Stderr, "error: unknown command %q\n", cmd)
 		fmt.Fprint(os.Stderr, usage)
@@ -150,6 +159,30 @@ func runCheck(files []string, basePath string) int {
 		return 1
 	}
 	return 0
+}
+
+func runGraph(files []string, basePath string, reverse bool) {
+	g := internal.BuildFullGraph(files, basePath)
+
+	var m map[string][]string
+	if reverse {
+		m = g.Reverse
+	} else {
+		m = g.Forward
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		fmt.Println(k)
+		for _, v := range m[k] {
+			fmt.Printf("  -> %s\n", v)
+		}
+	}
 }
 
 func runUpdate(files []string, basePath string) {

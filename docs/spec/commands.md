@@ -2,16 +2,17 @@
 
 # CLI Commands
 
-<!-- source: main.go@080c5de0 -->
+<!-- source: main.go@da469e94 -->
 
 ## Subcommand Dispatch
 
-Dispatches to `init`, `check`, or `update` based on the first argument.
+Dispatches to `init`, `check`, `update`, or `graph` based on the first argument.
 Prints usage and exits with code 1 when no arguments or unknown command.
 
 ### Argument Parsing
 
 - `--base <dir>` — override base directory for source path resolution
+- `--reverse` — show reverse graph (source -> specs), only used by `graph`
 - Remaining arguments are file paths or glob patterns
 
 ### Glob Expansion
@@ -78,6 +79,30 @@ Rewrites source annotation hashes in-place to match current file contents.
 - `path@TODO` — resolves hash if file exists, keeps TODO if not
 - bare `TODO` — skipped (no path to resolve)
 - Missing files — keeps existing hash unchanged
+
+<!-- /source -->
+
+## graph
+
+<!-- source: internal/graph.go@a6f63d82 -->
+
+Shows the dependency graph between spec files and their referenced sources.
+
+### Forward (default)
+
+Lists each spec file and its referenced source files (both code and documents).
+Useful for understanding what each spec covers.
+
+### Reverse (`--reverse`)
+
+Lists each source file and the spec files that reference it.
+Useful for answering "if I change this file, which specs might need updating?"
+
+### Behavior
+
+- References are deduplicated per spec file
+- Output is sorted alphabetically
+- Files without a specdrift declaration are listed with no dependencies
 
 <!-- /source -->
 
