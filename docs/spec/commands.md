@@ -2,7 +2,7 @@
 
 # CLI Commands
 
-<!-- source: main.go@da469e94 -->
+<!-- source: main.go@4b0e4360 -->
 
 ## Subcommand Dispatch
 
@@ -103,6 +103,30 @@ Useful for answering "if I change this file, which specs might need updating?"
 - References are deduplicated per spec file
 - Output is sorted alphabetically
 - Files without a specdrift declaration are listed with no dependencies
+
+<!-- /source -->
+
+## coverage
+
+<!-- source: internal/coverage.go@f9c6194b -->
+
+Shows documentation coverage of source files by comparing them against the reverse dependency graph.
+
+### Usage
+
+Requires `--src <glob>` (repeatable) to specify which source files to measure.
+Remaining arguments are spec files to build the graph from.
+
+### Output
+
+- Coverage percentage: `Coverage: N/M (X.X%)`
+- Covered files with their referencing specs
+- Not covered files
+
+### Controlling Scope
+
+The `--src` patterns determine which files are measured.
+To exclude test files, use patterns that don't match them (e.g., specific directories or naming conventions).
 
 <!-- /source -->
 

@@ -15,16 +15,19 @@ Usage:
   specdrift check [--base <dir>] <file|glob>...
   specdrift update [--base <dir>] <file|glob>...
   specdrift graph [--base <dir>] [--reverse] <file|glob>...
+  specdrift coverage [--base <dir>] --src <glob>... <file|glob>...
 
 Commands:
-  init    Create a .specdrift file in the current directory
-  check   Check spec files for drifted source annotations
-  update  Update source annotation hashes to match current files
-  graph   Show dependency graph between spec files and source files
+  init      Create a .specdrift file in the current directory
+  check     Check spec files for drifted source annotations
+  update    Update source annotation hashes to match current files
+  graph     Show dependency graph between spec files and source files
+  coverage  Show documentation coverage of source files
 
 Options:
-  --base <dir>  Base directory for resolving source paths (default: .specdrift location or current directory)
-  --reverse     Show reverse graph (source -> specs that reference it)
+  --base <dir>   Base directory for resolving source paths (default: .specdrift location or current directory)
+  --reverse      Show reverse graph (source -> specs that reference it)
+  --src <glob>   Source files to measure coverage against (repeatable, used by coverage)
 `
 
 func main() {
@@ -45,6 +48,7 @@ func main() {
 
 	var baseFlag string
 	var reverseFlag bool
+	var srcPatterns []string
 	var rawArgs []string
 
 	for i := 0; i < len(args); i++ {
@@ -57,6 +61,13 @@ func main() {
 			i++
 		} else if args[i] == "--reverse" {
 			reverseFlag = true
+		} else if args[i] == "--src" {
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "error: --src requires a glob argument")
+				os.Exit(1)
+			}
+			srcPatterns = append(srcPatterns, args[i+1])
+			i++
 		} else {
 			rawArgs = append(rawArgs, args[i])
 		}
@@ -99,6 +110,9 @@ func main() {
 		runUpdate(files, basePath)
 	case "graph":
 		runGraph(files, basePath, reverseFlag)
+	case "coverage":
+		exitCode := runCoverage(files, basePath, srcPatterns)
+		os.Exit(exitCode)
 	default:
 		fmt.Fprintf(os.Stderr, "error: unknown command %q\n", cmd)
 		fmt.Fprint(os.Stderr, usage)
@@ -183,6 +197,75 @@ func runGraph(files []string, basePath string, reverse bool) {
 			fmt.Printf("  -> %s\n", v)
 		}
 	}
+}
+
+func runCoverage(specFiles []string, basePath string, srcPatterns []string) int {
+	if len(srcPatterns) == 0 {
+		fmt.Fprintln(os.Stderr, "error: --src is required for coverage command")
+		return 1
+	}
+
+	// Expand source patterns
+	var srcFiles []string
+	for _, pat := range srcPatterns {
+		if internal.IsGlobPattern(pat) {
+			matches, err := internal.ExpandGlob(pat)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: src glob %q: %v\n", pat, err)
+				return 1
+			}
+			srcFiles = append(srcFiles, matches...)
+		} else {
+			srcFiles = append(srcFiles, pat)
+		}
+	}
+
+	if len(srcFiles) == 0 {
+		fmt.Fprintln(os.Stderr, "error: no source files matched")
+		return 1
+	}
+
+	// Relativize source files
+	relSrcFiles := make([]string, len(srcFiles))
+	for i, f := range srcFiles {
+		relSrcFiles[i] = internal.Relativize(f, basePath)
+	}
+
+	g := internal.BuildFullGraph(specFiles, basePath)
+	result := internal.ComputeCoverage(g.Reverse, relSrcFiles)
+
+	// Print coverage percentage
+	covered := len(result.Covered)
+	fmt.Printf("Coverage: %d/%d", covered, result.Total)
+	if result.Total > 0 {
+		fmt.Printf(" (%.1f%%)", float64(covered)/float64(result.Total)*100)
+	}
+	fmt.Println()
+
+	// Print covered files
+	if len(result.Covered) > 0 {
+		fmt.Println("\nCovered:")
+		for _, cf := range result.Covered {
+			specs := ""
+			for i, s := range cf.Specs {
+				if i > 0 {
+					specs += ", "
+				}
+				specs += s
+			}
+			fmt.Printf("  %s  <- %s\n", cf.Source, specs)
+		}
+	}
+
+	// Print not covered files
+	if len(result.NotCovered) > 0 {
+		fmt.Println("\nNot covered:")
+		for _, f := range result.NotCovered {
+			fmt.Printf("  %s\n", f)
+		}
+	}
+
+	return 0
 }
 
 func runUpdate(files []string, basePath string) {
