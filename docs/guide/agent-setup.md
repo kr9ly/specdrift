@@ -214,3 +214,98 @@ A few practical tips:
 - Annotate when a document describes **how to use** a specific source file
 - Don't annotate when a document explains **general concepts** without depending on specific implementations
 - Don't annotate indirectly related files — it creates noise and false drift signals
+
+## Part 3: Advanced Usage
+
+### Documentation Coverage
+
+`specdrift coverage` measures how much of your source code is tracked by spec documents.
+
+```bash
+specdrift coverage --src 'src/**/*.go' 'docs/spec/*.md'
+```
+
+Output:
+
+```
+Coverage: 9/12 (75.0%)
+
+Covered:
+  src/auth/handler.go  <- docs/spec/auth.md
+  src/db/client.go     <- docs/spec/db.md
+  ...
+
+Not covered:
+  src/util/hash.go
+  src/util/strings.go
+  src/middleware/cors.go
+```
+
+The `--src` flag (repeatable) specifies which source files to measure. Use it to control scope:
+
+```bash
+# Multiple source directories
+specdrift coverage --src 'src/**/*.go' --src 'pkg/**/*.go' 'docs/**/*.md'
+```
+
+#### Excluding Files with .specdriftignore
+
+Create a `.specdriftignore` file at the project root (next to `.specdrift`) to exclude files from coverage measurement:
+
+```
+# Test files
+*_test.go
+
+# Generated code
+*.gen.go
+generated/*
+```
+
+Patterns are matched against both the full relative path and the base filename. This file also affects `graph --reverse` output.
+
+#### Adding Coverage to Your Commit Workflow
+
+You can add a coverage check step after `specdrift check` in your commit workflow. Rather than enforcing a threshold, a practical approach is to show the "Not covered" list and let the developer (or agent) decide whether documentation is needed:
+
+```markdown
+5. **coverage**: `specdrift coverage --src 'src/**/*.go' 'docs/spec/*.md'`
+   - If there are "Not covered" files, review the list and decide whether
+     any of them need documentation before committing.
+6. **commit**: stage and commit
+```
+
+Not every file needs documentation. Utility functions, simple wrappers, and boilerplate rarely benefit from spec tracking. The coverage report helps you make that decision consciously rather than by oversight.
+
+### Dependency Graph
+
+`specdrift graph` visualizes the relationships between specs and source files.
+
+#### Forward: What does each spec cover?
+
+```bash
+specdrift graph 'docs/spec/*.md'
+```
+
+```
+docs/spec/auth.md
+  -> src/auth/handler.go
+  -> src/auth/token.go
+docs/spec/db.md
+  -> src/db/client.go
+```
+
+#### Reverse: Which specs track this file?
+
+```bash
+specdrift graph --reverse 'docs/spec/*.md'
+```
+
+```
+src/auth/handler.go
+  -> docs/spec/auth.md
+src/db/client.go
+  -> docs/spec/db.md
+  -> docs/spec/migration.md
+```
+
+The reverse graph answers: **"If I change this file, which specs might need updating?"** This is useful for pre-change impact analysis — before modifying a source file, check which specs reference it to understand the documentation implications.
