@@ -2,7 +2,7 @@
 
 # CLI Commands
 
-<!-- source: main.go@4b0e4360 -->
+<!-- source: main.go@002ff436 -->
 
 ## Subcommand Dispatch
 

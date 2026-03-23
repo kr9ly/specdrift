@@ -102,6 +102,12 @@ func main() {
 
 	basePath := resolveBasePath(baseFlag)
 
+	ignorePatterns, err := internal.LoadIgnorePatterns(basePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: reading %s: %v\n", internal.IgnoreFileName, err)
+		os.Exit(1)
+	}
+
 	switch cmd {
 	case "check":
 		exitCode := runCheck(files, basePath)
@@ -109,9 +115,9 @@ func main() {
 	case "update":
 		runUpdate(files, basePath)
 	case "graph":
-		runGraph(files, basePath, reverseFlag)
+		runGraph(files, basePath, reverseFlag, ignorePatterns)
 	case "coverage":
-		exitCode := runCoverage(files, basePath, srcPatterns)
+		exitCode := runCoverage(files, basePath, srcPatterns, ignorePatterns)
 		os.Exit(exitCode)
 	default:
 		fmt.Fprintf(os.Stderr, "error: unknown command %q\n", cmd)
@@ -175,7 +181,7 @@ func runCheck(files []string, basePath string) int {
 	return 0
 }
 
-func runGraph(files []string, basePath string, reverse bool) {
+func runGraph(files []string, basePath string, reverse bool, ignorePatterns []string) {
 	g := internal.BuildFullGraph(files, basePath)
 
 	var m map[string][]string
@@ -192,6 +198,9 @@ func runGraph(files []string, basePath string, reverse bool) {
 	sort.Strings(keys)
 
 	for _, k := range keys {
+		if reverse && internal.IsIgnored(k, ignorePatterns) {
+			continue
+		}
 		fmt.Println(k)
 		for _, v := range m[k] {
 			fmt.Printf("  -> %s\n", v)
@@ -199,7 +208,7 @@ func runGraph(files []string, basePath string, reverse bool) {
 	}
 }
 
-func runCoverage(specFiles []string, basePath string, srcPatterns []string) int {
+func runCoverage(specFiles []string, basePath string, srcPatterns []string, ignorePatterns []string) int {
 	if len(srcPatterns) == 0 {
 		fmt.Fprintln(os.Stderr, "error: --src is required for coverage command")
 		return 1
@@ -225,10 +234,16 @@ func runCoverage(specFiles []string, basePath string, srcPatterns []string) int 
 		return 1
 	}
 
-	// Relativize source files
-	relSrcFiles := make([]string, len(srcFiles))
-	for i, f := range srcFiles {
-		relSrcFiles[i] = internal.Relativize(f, basePath)
+	// Relativize and filter source files
+	var relSrcFiles []string
+	for _, f := range srcFiles {
+		relSrcFiles = append(relSrcFiles, internal.Relativize(f, basePath))
+	}
+	relSrcFiles = internal.FilterIgnored(relSrcFiles, ignorePatterns)
+
+	if len(relSrcFiles) == 0 {
+		fmt.Fprintln(os.Stderr, "error: all source files excluded by .specdriftignore")
+		return 1
 	}
 
 	g := internal.BuildFullGraph(specFiles, basePath)
