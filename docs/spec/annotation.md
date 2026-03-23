@@ -36,10 +36,19 @@ Closing fences must use the same character and be at least as long as the openin
 Inline code spans (backtick-delimited) within a line are stripped before matching,
 so annotations inside inline code are ignored.
 
+### Document-to-Document References
+
+Source tags can reference other `.md` files, enabling dependency tracking between documents.
+
+**Circular references are not allowed.** If document A references document B and B references A (directly or transitively), `check` reports an error on all participating files. This prevents infinite update loops where updating one document changes its hash and triggers drift in the other.
+
+To resolve a circular reference, remove one direction of the dependency so the relationship becomes one-way.
+
 ### Error Cases
 
 - Closing tag without matching open tag
 - Unclosed source tag at end of file
 - Source tag with no valid references
+- Circular references between documents
 
 <!-- /source -->

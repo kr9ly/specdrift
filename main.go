@@ -121,8 +121,23 @@ func runInit() {
 }
 
 func runCheck(files []string, basePath string) int {
+	graph := internal.BuildDocGraph(files, basePath)
+	cycleErrors := internal.CycleErrorsByFile(graph)
+
 	hasProblems := false
 	for _, f := range files {
+		rel := internal.Relativize(f, basePath)
+		if cycleErr, ok := cycleErrors[rel]; ok {
+			result := &internal.CheckResult{
+				SpecFile: f,
+				Status:   internal.CheckError,
+				Error:    cycleErr,
+			}
+			internal.ReportText(os.Stdout, result)
+			hasProblems = true
+			continue
+		}
+
 		result := internal.Check(f, basePath)
 		internal.ReportText(os.Stdout, result)
 

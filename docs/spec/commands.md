@@ -2,7 +2,7 @@
 
 # CLI Commands
 
-<!-- source: main.go@27e704d5 -->
+<!-- source: main.go@080c5de0 -->
 
 ## Subcommand Dispatch
 
@@ -34,6 +34,18 @@ Glob expansion is handled internally, not delegated to the shell.
 
 Parses each spec file and compares source annotation hashes against actual file hashes.
 
+### Circular Reference Detection
+
+<!-- source: internal/cycle.go@ff0533b4 -->
+
+Before checking individual files, builds a dependency graph from `.md`-to-`.md` references and detects cycles.
+Files participating in a cycle are reported as errors and skipped from normal checking.
+Non-participating files are checked normally.
+
+The graph is built transitively: if A references B.md, B.md is also parsed for its `.md` references, even if B.md was not explicitly passed as an argument.
+
+<!-- /source -->
+
 ### Check Statuses
 
 - `OK` — hash matches
@@ -41,7 +53,7 @@ Parses each spec file and compares source annotation hashes against actual file 
 - `MISSING` — source file not found
 - `TODO` — unresolved placeholder
 
-Exits with code 1 if any file has DRIFT, MISSING, TODO, empty declaration, or parse error.
+Exits with code 1 if any file has DRIFT, MISSING, TODO, empty declaration, parse error, or circular reference.
 
 <!-- /source -->
 
