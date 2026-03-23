@@ -8,7 +8,7 @@ If your project already has documentation (design docs, rule definitions, guides
 
 ## Part 1: Tool Setup
 
-<!-- source: internal/annotation.go@352e344f, internal/config.go@06b50e71 -->
+<!-- source: internal/annotation.go@1f856111, internal/config.go@52248ec2 -->
 
 ### Install
 
@@ -18,7 +18,7 @@ go install github.com/kr9ly/specdrift@latest
 
 ### Initialize
 
-Run at the root of your project. This creates a `.specdrift` marker file used to resolve source paths.
+Run at the root of your project. This creates a `.specdrift` marker file used to resolve source paths and store project configuration.
 
 ```bash
 cd /path/to/your/project
@@ -106,7 +106,7 @@ specdrift check docs/spec/auth.md
 
 ## Part 2: Integrating into Your Development Process
 
-<!-- source: internal/checker.go@913de33e, internal/updater.go@a22df0ea -->
+<!-- source: internal/checker.go@913de33e, internal/updater.go@8eda76e4 -->
 
 ### The Core Principle
 
@@ -168,6 +168,22 @@ When `specdrift check` reports DRIFT, the correct response is:
    - If no → revise the spec text, then run `specdrift update`
 
 **Never run `specdrift update` without reviewing the spec first.** Silent updates defeat the entire purpose. This is the single most important rule to convey to your agent.
+
+### Interactive Update Mode
+
+`specdrift update -i` prompts for each drifted annotation before updating, like `git add -p` for specs. For each annotation with DRIFT:
+
+1. Shows the enclosed spec text (the content between source tags)
+2. Shows hash changes (old → new)
+3. Prompts `[y/n/q]` — accept, skip, or quit
+
+To make interactive mode the default for your project, add to `.specdrift`:
+
+```json
+{"update_mode": "interactive"}
+```
+
+This ensures that no annotation is silently updated — every hash change requires explicit confirmation.
 
 For Claude Code, you can enforce this in CLAUDE.md:
 

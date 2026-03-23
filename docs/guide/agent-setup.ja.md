@@ -18,7 +18,7 @@ go install github.com/kr9ly/specdrift@latest
 
 ### 初期化
 
-プロジェクトのルートで実行します。ソースパスの起点となる `.specdrift` マーカーファイルが作成されます。
+プロジェクトのルートで実行します。ソースパスの起点となる `.specdrift` マーカー兼設定ファイルが作成されます。
 
 ```bash
 cd /path/to/your/project
@@ -106,7 +106,7 @@ specdrift check docs/spec/auth.md
 
 ## Part 2: 開発プロセスへの組み込み
 
-<!-- source: internal/checker.go@913de33e, internal/updater.go@a22df0ea -->
+<!-- source: internal/checker.go@913de33e, internal/updater.go@8eda76e4 -->
 
 ### 基本原則
 
@@ -168,6 +168,22 @@ specdrift check 'docs/spec/*.md'
    - いいえ → 仕様の文面を修正してから `specdrift update`
 
 **仕様を確認せずに `specdrift update` を実行しないこと。** 無言の更新はツールの意味を無にします。これがエージェントに伝えるべき最も重要なルールです。
+
+### 対話型 update モード
+
+`specdrift update -i` は、DRIFT のあるアノテーションごとにプロンプトを表示してから更新します。仕様書版の `git add -p` です。DRIFT があるアノテーションに対して：
+
+1. 囲まれた仕様テキスト（source タグ間の内容）を表示
+2. ハッシュの変更（旧 → 新）を表示
+3. `[y/n/q]` で操作 — 更新、スキップ、中断
+
+プロジェクト全体で対話型をデフォルトにするには、`.specdrift` に設定します：
+
+```json
+{"update_mode": "interactive"}
+```
+
+これにより、すべてのハッシュ更新に明示的な確認が必要になり、無言の update を防止できます。
 
 Claude Code の場合、CLAUDE.md で明示できます：
 

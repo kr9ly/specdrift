@@ -28,17 +28,25 @@ Handler spec goes here.
 <!-- /source -->
 ```
 
-Resolve hashes and check for drift across the project:
+Resolve hashes and check for drift:
 
 ```bash
 specdrift update '**/*.md'
 specdrift check '**/*.md'
 ```
 
-You can also target specific files:
+### Interactive Update
+
+Review each drifted annotation before updating (`git add -p` for specs):
 
 ```bash
-specdrift check docs/spec.md
+specdrift update -i '**/*.md'
+```
+
+Or set it as the default in `.specdrift`:
+
+```json
+{"update_mode": "interactive"}
 ```
 
 ## Annotation Format
