@@ -10,3 +10,7 @@ Run checks and commit for the specdrift project. Execute all of the following st
    - If the user wants to add documentation, update the relevant spec files, run `go run . update 'docs/spec/*.md'` to sync hashes, then re-run steps 3-4 before proceeding.
    - If the user decides no documentation is needed, proceed to commit.
 6. **commit**: If all checks pass, stage all changes and create a commit. Write a concise commit message in Japanese summarizing the changes. End with `Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>`.
+7. **version check**: After committing, check if a new version tag is needed.
+   - Run `git log $(git describe --tags --abbrev=0 2>/dev/null || echo '--all')..HEAD --oneline` to see commits since the last tag.
+   - Evaluate the changes against the versioning rules in CLAUDE.md (major: format change, minor: new feature, patch: bug fix/docs).
+   - If a new tag is warranted, propose the version number and rationale to the user. Create the tag only if the user approves.
