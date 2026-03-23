@@ -1,11 +1,17 @@
 package internal
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 )
 
 const ConfigFileName = ".specdrift"
+
+// Config represents the specdrift project configuration.
+type Config struct {
+	UpdateMode string `json:"update_mode,omitempty"` // "" (default) or "interactive"
+}
 
 // FindProjectRoot walks up from startDir looking for a .specdrift file.
 // Returns the directory containing it, or empty string if not found.
@@ -24,6 +30,24 @@ func FindProjectRoot(startDir string) string {
 		}
 		dir = parent
 	}
+}
+
+// LoadConfig reads the .specdrift config file from basePath.
+// Returns a zero Config if the file doesn't exist or is empty.
+func LoadConfig(basePath string) (*Config, error) {
+	path := filepath.Join(basePath, ConfigFileName)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &Config{}, nil
+		}
+		return nil, err
+	}
+	var cfg Config
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }
 
 // Init creates a .specdrift file in the specified directory.

@@ -2,18 +2,25 @@
 
 # Project Configuration
 
-<!-- source: internal/config.go@06b50e71 -->
+<!-- source: internal/config.go@52248ec2 -->
 
 ## .specdrift File
 
-Marker file at the project root. Created by `specdrift init`.
-Contains `{}` (empty JSON object, reserved for future configuration).
+Marker file and configuration file at the project root. Created by `specdrift init` with `{}`.
 
-## Project Root Discovery
+### Configuration Fields
+
+- `update_mode` (string, optional) — `"interactive"` to make `update` always prompt per annotation
+
+### Project Root Discovery
 
 Walks up from the start directory toward the filesystem root.
 Returns the first directory containing a `.specdrift` file.
 Returns empty string if none found.
+
+### Config Loading
+
+Reads and parses the `.specdrift` JSON file. Returns zero config if the file doesn't exist.
 
 <!-- /source -->
 

@@ -2,7 +2,7 @@
 
 # Annotation Parser
 
-<!-- source: internal/annotation.go@352e344f -->
+<!-- source: internal/annotation.go@1f856111 -->
 
 ## Declaration Detection
 

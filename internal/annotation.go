@@ -54,6 +54,7 @@ type SourceRef struct {
 type Annotation struct {
 	Sources  []SourceRef
 	Line     int
+	EndLine  int
 	Children []*Annotation
 }
 
@@ -151,6 +152,7 @@ func ParseAnnotations(content string) (*ParseResult, error) {
 			if len(stack) == 0 {
 				return nil, fmt.Errorf("line %d: unexpected closing tag <!-- /source --> without matching open tag", lineNum)
 			}
+			stack[len(stack)-1].EndLine = lineNum
 			stack = stack[:len(stack)-1]
 			continue
 		}

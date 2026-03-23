@@ -2,7 +2,7 @@
 
 # CLI Commands
 
-<!-- source: main.go@002ff436 -->
+<!-- source: main.go@d3045ee6 -->
 
 ## Subcommand Dispatch
 
@@ -12,6 +12,7 @@ Prints usage and exits with code 1 when no arguments or unknown command.
 ### Argument Parsing
 
 - `--base <dir>` — override base directory for source path resolution
+- `-i` — interactive update: prompt for each drifted annotation (only used by `update`)
 - `--reverse` — show reverse graph (source -> specs), only used by `graph`
 - Remaining arguments are file paths or glob patterns
 
@@ -71,14 +72,26 @@ Skipped files (no declaration) and empty declarations are reported as single-lin
 
 ## update
 
-<!-- source: internal/updater.go@a22df0ea -->
+<!-- source: internal/updater.go@8eda76e4 -->
 
 Rewrites source annotation hashes in-place to match current file contents.
+
+### Batch Mode (default)
 
 - `path@hash` — recalculates hash, writes file only if changed
 - `path@TODO` — resolves hash if file exists, keeps TODO if not
 - bare `TODO` — skipped (no path to resolve)
 - Missing files — keeps existing hash unchanged
+
+### Interactive Mode (`-i` flag or `update_mode: "interactive"` in config)
+
+Prompts for each drifted annotation before updating. For each annotation with DRIFT, MISSING, or TODO status:
+
+1. Shows the enclosed spec text (content between source open/close tags)
+2. Shows hash changes (old → new)
+3. Prompts `[y/n/q]` — accept, skip, or quit
+
+Only accepted annotations are rewritten. Useful for reviewing whether spec text still accurately describes the source before syncing hashes.
 
 <!-- /source -->
 
@@ -132,7 +145,7 @@ To exclude test files, use patterns that don't match them (e.g., specific direct
 
 ## init
 
-<!-- source: internal/config.go@06b50e71 -->
+<!-- source: internal/config.go@52248ec2 -->
 
 Creates a `.specdrift` marker file (`{}`) in the current directory.
 Errors if the file already exists.
@@ -142,5 +155,12 @@ Errors if the file already exists.
 `check` and `update` walk up from the current directory to find `.specdrift`.
 The directory containing it becomes the default base path.
 `--base` flag overrides this.
+
+### Configuration
+
+The `.specdrift` file is also used for project configuration (JSON).
+Currently supported fields:
+
+- `update_mode` — `"interactive"` to make `update` always prompt per annotation (equivalent to always passing `-i`)
 
 <!-- /source -->

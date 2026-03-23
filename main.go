@@ -13,7 +13,7 @@ const usage = `specdrift - detect drift between specs and source code
 Usage:
   specdrift init
   specdrift check [--base <dir>] <file|glob>...
-  specdrift update [--base <dir>] <file|glob>...
+  specdrift update [--base <dir>] [-i] <file|glob>...
   specdrift graph [--base <dir>] [--reverse] <file|glob>...
   specdrift coverage [--base <dir>] --src <glob>... <file|glob>...
 
@@ -26,6 +26,7 @@ Commands:
 
 Options:
   --base <dir>   Base directory for resolving source paths (default: .specdrift location or current directory)
+  -i             Interactive update: prompt for each drifted annotation
   --reverse      Show reverse graph (source -> specs that reference it)
   --src <glob>   Source files to measure coverage against (repeatable, used by coverage)
 `
@@ -48,6 +49,7 @@ func main() {
 
 	var baseFlag string
 	var reverseFlag bool
+	var interactiveFlag bool
 	var srcPatterns []string
 	var rawArgs []string
 
@@ -61,6 +63,8 @@ func main() {
 			i++
 		} else if args[i] == "--reverse" {
 			reverseFlag = true
+		} else if args[i] == "-i" {
+			interactiveFlag = true
 		} else if args[i] == "--src" {
 			if i+1 >= len(args) {
 				fmt.Fprintln(os.Stderr, "error: --src requires a glob argument")
@@ -108,12 +112,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Load config for update_mode
+	cfg, cfgErr := internal.LoadConfig(basePath)
+	if cfgErr != nil {
+		fmt.Fprintf(os.Stderr, "warning: reading config: %v\n", cfgErr)
+		cfg = &internal.Config{}
+	}
+
 	switch cmd {
 	case "check":
 		exitCode := runCheck(files, basePath)
 		os.Exit(exitCode)
 	case "update":
-		runUpdate(files, basePath)
+		interactive := interactiveFlag || cfg.UpdateMode == "interactive"
+		if interactive {
+			runInteractiveUpdate(files, basePath)
+		} else {
+			runUpdate(files, basePath)
+		}
 	case "graph":
 		runGraph(files, basePath, reverseFlag, ignorePatterns)
 	case "coverage":
@@ -281,6 +297,23 @@ func runCoverage(specFiles []string, basePath string, srcPatterns []string, igno
 	}
 
 	return 0
+}
+
+func runInteractiveUpdate(files []string, basePath string) {
+	for _, f := range files {
+		r, err := internal.InteractiveUpdate(f, basePath, os.Stdin, os.Stdout)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s: %v\n", f, err)
+			continue
+		}
+		if r.Skipped {
+			fmt.Printf("%s: skipped (no <!-- specdrift --> declaration)\n", f)
+		} else if r.Updated > 0 {
+			fmt.Printf("%s: updated %d annotation(s)\n", f, r.Updated)
+		} else {
+			fmt.Printf("%s: already up to date\n", f)
+		}
+	}
 }
 
 func runUpdate(files []string, basePath string) {
