@@ -35,18 +35,16 @@ specdrift update '**/*.md'
 specdrift check '**/*.md'
 ```
 
-### Interactive Update
+### Auditable Updates
 
-Review each drifted annotation before updating (`git add -p` for specs):
-
-```bash
-specdrift update -i '**/*.md'
-```
-
-Or set it as the default in `.specdrift`:
+Updates show detailed hash changes. Require a reason with config:
 
 ```json
-{"update_mode": "interactive"}
+{"require_reason": true}
+```
+
+```bash
+specdrift update --reason "spec reviewed after refactor" '**/*.md'
 ```
 
 ## Annotation Format

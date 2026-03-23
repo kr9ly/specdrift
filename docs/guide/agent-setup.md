@@ -8,7 +8,7 @@ If your project already has documentation (design docs, rule definitions, guides
 
 ## Part 1: Tool Setup
 
-<!-- source: internal/annotation.go@1f856111, internal/config.go@52248ec2 -->
+<!-- source: internal/annotation.go@1f856111, internal/config.go@68cd5acc -->
 
 ### Install
 
@@ -106,7 +106,7 @@ specdrift check docs/spec/auth.md
 
 ## Part 2: Integrating into Your Development Process
 
-<!-- source: internal/checker.go@913de33e, internal/updater.go@8eda76e4 -->
+<!-- source: internal/checker.go@913de33e, internal/updater.go@7ed25323 -->
 
 ### The Core Principle
 
@@ -169,21 +169,27 @@ When `specdrift check` reports DRIFT, the correct response is:
 
 **Never run `specdrift update` without reviewing the spec first.** Silent updates defeat the entire purpose. This is the single most important rule to convey to your agent.
 
-### Interactive Update Mode
+### Update Reasons
 
-`specdrift update -i` prompts for each drifted annotation before updating, like `git add -p` for specs. For each annotation with DRIFT:
+`specdrift update` shows detailed output for each hash change:
 
-1. Shows the enclosed spec text (the content between source tags)
-2. Shows hash changes (old → new)
-3. Prompts `[y/n/q]` — accept, skip, or quit
-
-To make interactive mode the default for your project, add to `.specdrift`:
-
-```json
-{"update_mode": "interactive"}
+```
+docs/spec/auth.md: 2 updated (reason: handler refactored, spec still accurate)
+  src/auth/handler.go: a1b2c3d4 -> e5f6a7b8
+  src/auth/token.go: 11223344 -> 55667788
 ```
 
-This ensures that no annotation is silently updated — every hash change requires explicit confirmation.
+To require a reason for every update, add to `.specdrift`:
+
+```json
+{"require_reason": true}
+```
+
+With this setting, `specdrift update` without `--reason` will be rejected. This makes every update auditable — the reason appears in the output and can be traced in conversation logs or CI output.
+
+```bash
+specdrift update --reason "spec reviewed, matches new API" 'docs/spec/*.md'
+```
 
 For Claude Code, you can enforce this in CLAUDE.md:
 
@@ -208,7 +214,7 @@ Example block for CLAUDE.md:
 This project uses specdrift to track whether spec documents are in sync with source code.
 
 - Check: `specdrift check 'docs/spec/*.md'`
-- Update (after review): `specdrift update 'docs/spec/*.md'`
+- Update (after review): `specdrift update --reason "<why>" 'docs/spec/*.md'`
 - When DRIFT is detected, read both the spec and the changed source before updating.
 ```
 

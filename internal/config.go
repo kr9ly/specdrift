@@ -10,7 +10,7 @@ const ConfigFileName = ".specdrift"
 
 // Config represents the specdrift project configuration.
 type Config struct {
-	UpdateMode string `json:"update_mode,omitempty"` // "" (default) or "interactive"
+	RequireReason bool `json:"require_reason,omitempty"` // require --reason for update
 }
 
 // FindProjectRoot walks up from startDir looking for a .specdrift file.

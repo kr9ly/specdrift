@@ -2,7 +2,7 @@
 
 # Project Configuration
 
-<!-- source: internal/config.go@52248ec2 -->
+<!-- source: internal/config.go@68cd5acc -->
 
 ## .specdrift File
 
@@ -10,7 +10,7 @@ Marker file and configuration file at the project root. Created by `specdrift in
 
 ### Configuration Fields
 
-- `update_mode` (string, optional) — `"interactive"` to make `update` always prompt per annotation
+- `require_reason` (bool, optional) — require `--reason` for every `update` invocation
 
 ### Project Root Discovery
 

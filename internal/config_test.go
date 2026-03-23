@@ -14,21 +14,21 @@ func TestLoadConfig_empty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.UpdateMode != "" {
-		t.Errorf("update_mode = %q, want empty", cfg.UpdateMode)
+	if cfg.RequireReason {
+		t.Error("require_reason should be false by default")
 	}
 }
 
-func TestLoadConfig_interactive(t *testing.T) {
+func TestLoadConfig_require_reason(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(`{"update_mode": "interactive"}`+"\n"), 0644)
+	os.WriteFile(filepath.Join(dir, ConfigFileName), []byte(`{"require_reason": true}`+"\n"), 0644)
 
 	cfg, err := LoadConfig(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.UpdateMode != "interactive" {
-		t.Errorf("update_mode = %q, want %q", cfg.UpdateMode, "interactive")
+	if !cfg.RequireReason {
+		t.Error("require_reason should be true")
 	}
 }
 
@@ -39,8 +39,8 @@ func TestLoadConfig_missing_file(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.UpdateMode != "" {
-		t.Errorf("update_mode = %q, want empty", cfg.UpdateMode)
+	if cfg.RequireReason {
+		t.Error("require_reason should be false when file is missing")
 	}
 }
 

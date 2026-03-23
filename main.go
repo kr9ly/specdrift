@@ -13,7 +13,7 @@ const usage = `specdrift - detect drift between specs and source code
 Usage:
   specdrift init
   specdrift check [--base <dir>] <file|glob>...
-  specdrift update [--base <dir>] [-i] <file|glob>...
+  specdrift update [--base <dir>] [--reason <text>] <file|glob>...
   specdrift graph [--base <dir>] [--reverse] <file|glob>...
   specdrift coverage [--base <dir>] --src <glob>... <file|glob>...
 
@@ -25,10 +25,10 @@ Commands:
   coverage  Show documentation coverage of source files
 
 Options:
-  --base <dir>   Base directory for resolving source paths (default: .specdrift location or current directory)
-  -i             Interactive update: prompt for each drifted annotation
-  --reverse      Show reverse graph (source -> specs that reference it)
-  --src <glob>   Source files to measure coverage against (repeatable, used by coverage)
+  --base <dir>      Base directory for resolving source paths (default: .specdrift location or current directory)
+  --reason <text>   Reason for the update (required when require_reason is set in .specdrift)
+  --reverse         Show reverse graph (source -> specs that reference it)
+  --src <glob>      Source files to measure coverage against (repeatable, used by coverage)
 `
 
 func main() {
@@ -49,7 +49,7 @@ func main() {
 
 	var baseFlag string
 	var reverseFlag bool
-	var interactiveFlag bool
+	var reasonFlag string
 	var srcPatterns []string
 	var rawArgs []string
 
@@ -63,8 +63,13 @@ func main() {
 			i++
 		} else if args[i] == "--reverse" {
 			reverseFlag = true
-		} else if args[i] == "-i" {
-			interactiveFlag = true
+		} else if args[i] == "--reason" {
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "error: --reason requires a text argument")
+				os.Exit(1)
+			}
+			reasonFlag = args[i+1]
+			i++
 		} else if args[i] == "--src" {
 			if i+1 >= len(args) {
 				fmt.Fprintln(os.Stderr, "error: --src requires a glob argument")
@@ -112,7 +117,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Load config for update_mode
 	cfg, cfgErr := internal.LoadConfig(basePath)
 	if cfgErr != nil {
 		fmt.Fprintf(os.Stderr, "warning: reading config: %v\n", cfgErr)
@@ -124,12 +128,11 @@ func main() {
 		exitCode := runCheck(files, basePath)
 		os.Exit(exitCode)
 	case "update":
-		interactive := interactiveFlag || cfg.UpdateMode == "interactive"
-		if interactive {
-			runInteractiveUpdate(files, basePath)
-		} else {
-			runUpdate(files, basePath)
+		if cfg.RequireReason && reasonFlag == "" {
+			fmt.Fprintln(os.Stderr, "error: --reason is required (require_reason is set in .specdrift)")
+			os.Exit(1)
 		}
+		runUpdate(files, basePath, reasonFlag)
 	case "graph":
 		runGraph(files, basePath, reverseFlag, ignorePatterns)
 	case "coverage":
@@ -299,24 +302,7 @@ func runCoverage(specFiles []string, basePath string, srcPatterns []string, igno
 	return 0
 }
 
-func runInteractiveUpdate(files []string, basePath string) {
-	for _, f := range files {
-		r, err := internal.InteractiveUpdate(f, basePath, os.Stdin, os.Stdout)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s: %v\n", f, err)
-			continue
-		}
-		if r.Skipped {
-			fmt.Printf("%s: skipped (no <!-- specdrift --> declaration)\n", f)
-		} else if r.Updated > 0 {
-			fmt.Printf("%s: updated %d annotation(s)\n", f, r.Updated)
-		} else {
-			fmt.Printf("%s: already up to date\n", f)
-		}
-	}
-}
-
-func runUpdate(files []string, basePath string) {
+func runUpdate(files []string, basePath string, reason string) {
 	for _, f := range files {
 		r, err := internal.Update(f, basePath)
 		if err != nil {
@@ -325,10 +311,23 @@ func runUpdate(files []string, basePath string) {
 		}
 		if r.Skipped {
 			fmt.Printf("%s: skipped (no <!-- specdrift --> declaration)\n", f)
-		} else if r.Updated > 0 {
-			fmt.Printf("%s: updated %d annotation(s)\n", f, r.Updated)
-		} else {
+			continue
+		}
+		if len(r.Changes) == 0 {
 			fmt.Printf("%s: already up to date\n", f)
+			continue
+		}
+		fmt.Printf("%s: %d updated", f, len(r.Changes))
+		if reason != "" {
+			fmt.Printf(" (reason: %s)", reason)
+		}
+		fmt.Println()
+		for _, c := range r.Changes {
+			if c.OldHash == "" {
+				fmt.Printf("  %s: TODO -> %s\n", c.Path, c.NewHash)
+			} else {
+				fmt.Printf("  %s: %s -> %s\n", c.Path, c.OldHash, c.NewHash)
+			}
 		}
 	}
 }

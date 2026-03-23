@@ -2,7 +2,7 @@
 
 # CLI Commands
 
-<!-- source: main.go@d3045ee6 -->
+<!-- source: main.go@cc7b9e98 -->
 
 ## Subcommand Dispatch
 
@@ -12,7 +12,7 @@ Prints usage and exits with code 1 when no arguments or unknown command.
 ### Argument Parsing
 
 - `--base <dir>` — override base directory for source path resolution
-- `-i` — interactive update: prompt for each drifted annotation (only used by `update`)
+- `--reason <text>` — reason for the update (only used by `update`, required when `require_reason` is set)
 - `--reverse` — show reverse graph (source -> specs), only used by `graph`
 - Remaining arguments are file paths or glob patterns
 
@@ -72,26 +72,24 @@ Skipped files (no declaration) and empty declarations are reported as single-lin
 
 ## update
 
-<!-- source: internal/updater.go@8eda76e4 -->
+<!-- source: internal/updater.go@7ed25323 -->
 
 Rewrites source annotation hashes in-place to match current file contents.
 
-### Batch Mode (default)
+### Hash Resolution
 
 - `path@hash` — recalculates hash, writes file only if changed
 - `path@TODO` — resolves hash if file exists, keeps TODO if not
 - bare `TODO` — skipped (no path to resolve)
 - Missing files — keeps existing hash unchanged
 
-### Interactive Mode (`-i` flag or `update_mode: "interactive"` in config)
+### Detailed Output
 
-Prompts for each drifted annotation before updating. For each annotation with DRIFT, MISSING, or TODO status:
+Reports each changed reference with old and new hashes. When `--reason` is provided, the reason is included in the output for auditability.
 
-1. Shows the enclosed spec text (content between source open/close tags)
-2. Shows hash changes (old → new)
-3. Prompts `[y/n/q]` — accept, skip, or quit
+### Require Reason (`require_reason: true` in config)
 
-Only accepted annotations are rewritten. Useful for reviewing whether spec text still accurately describes the source before syncing hashes.
+When enabled, `update` refuses to run without `--reason <text>`. This ensures every hash update has a recorded justification.
 
 <!-- /source -->
 
@@ -145,7 +143,7 @@ To exclude test files, use patterns that don't match them (e.g., specific direct
 
 ## init
 
-<!-- source: internal/config.go@52248ec2 -->
+<!-- source: internal/config.go@68cd5acc -->
 
 Creates a `.specdrift` marker file (`{}`) in the current directory.
 Errors if the file already exists.
@@ -161,6 +159,6 @@ The directory containing it becomes the default base path.
 The `.specdrift` file is also used for project configuration (JSON).
 Currently supported fields:
 
-- `update_mode` — `"interactive"` to make `update` always prompt per annotation (equivalent to always passing `-i`)
+- `require_reason` — `true` to require `--reason` for every `update` invocation
 
 <!-- /source -->
