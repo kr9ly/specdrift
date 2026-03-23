@@ -1,3 +1,5 @@
+<!-- specdrift v1 -->
+
 # Setting Up specdrift for AI Coding Agents
 
 This guide covers installing specdrift and integrating it into your development workflow with an AI coding agent.
@@ -5,6 +7,8 @@ This guide covers installing specdrift and integrating it into your development 
 If your project already has documentation (design docs, rule definitions, guides, etc.), you don't need to write new spec files. You can add specdrift annotations directly to your existing documents.
 
 ## Part 1: Tool Setup
+
+<!-- source: internal/annotation.go@352e344f, internal/config.go@06b50e71 -->
 
 ### Install
 
@@ -98,7 +102,11 @@ From this point, `specdrift check` detects when the source file changes.
 specdrift check docs/spec/auth.md
 ```
 
+<!-- /source -->
+
 ## Part 2: Integrating into Your Development Process
+
+<!-- source: internal/checker.go@913de33e, internal/updater.go@a22df0ea -->
 
 ### The Core Principle
 
@@ -215,7 +223,11 @@ A few practical tips:
 - Don't annotate when a document explains **general concepts** without depending on specific implementations
 - Don't annotate indirectly related files — it creates noise and false drift signals
 
+<!-- /source -->
+
 ## Part 3: Advanced Usage
+
+<!-- source: internal/coverage.go@f9c6194b, internal/graph.go@a6f63d82, internal/ignore.go@56954b8e -->
 
 ### Documentation Coverage
 
@@ -309,3 +321,5 @@ src/db/client.go
 ```
 
 The reverse graph answers: **"If I change this file, which specs might need updating?"** This is useful for pre-change impact analysis — before modifying a source file, check which specs reference it to understand the documentation implications.
+
+<!-- /source -->
