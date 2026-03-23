@@ -16,9 +16,13 @@ Parses source open/close tag pairs into a tree structure using a stack.
 
 ### Reference Formats
 
+<!-- source: internal/hasher.go@5315ca07 -->
+
 - `path@hash` — resolved reference (hash is SHA-256 first 8 chars)
 - `path@TODO` — path known, hash unresolved
 - `TODO` — bare placeholder, no path
+
+<!-- /source -->
 
 ### Multiple References
 
