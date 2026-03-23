@@ -2,6 +2,8 @@
 
 This guide covers installing specdrift and integrating it into your development workflow with an AI coding agent.
 
+If your project already has documentation (design docs, rule definitions, guides, etc.), you don't need to write new spec files. You can add specdrift annotations directly to your existing documents.
+
 ## Part 1: Tool Setup
 
 ### Install
@@ -19,9 +21,41 @@ cd /path/to/your/project
 specdrift init
 ```
 
-### Write Your First Spec
+### Add Annotations to Existing Documents
 
-Create a spec file (e.g., `docs/spec/auth.md`) and add the specdrift declaration:
+If your project already has documentation, this is the quickest way to get started.
+
+1. Add the specdrift declaration at the top of the document:
+
+```markdown
+<!-- specdrift v1 -->
+```
+
+2. Wrap sections that describe specific source files with source annotations:
+
+```markdown
+<!-- source: src/auth/handler.go@TODO -->
+This handler validates credentials and returns a JWT token.
+<!-- /source -->
+```
+
+> **Important:** The `@TODO` or `@hash` suffix is required. Writing just `src/auth/handler.go` without the `@` suffix will produce an error.
+
+3. Run `specdrift update` to resolve hashes for existing files:
+
+```bash
+specdrift update docs/design/auth.md
+```
+
+4. Verify with `specdrift check`:
+
+```bash
+specdrift check docs/design/auth.md
+```
+
+### Write a New Spec (Spec-First Workflow)
+
+Alternatively, create a new spec file (e.g., `docs/spec/auth.md`) and add the specdrift declaration:
 
 ```markdown
 <!-- specdrift v1 -->
@@ -85,6 +119,11 @@ Add `specdrift check` to your pre-commit workflow. The exact mechanism depends o
 5. Commit
 
 The key point: specdrift check runs **after tests pass** but **before the commit is created**. This ensures the agent addresses spec drift while the changes are fresh.
+
+Choose the glob pattern that fits your project layout:
+
+- `'docs/spec/*.md'` — when specs live in a dedicated directory
+- `'docs/**/*.md'` — when annotations are spread across existing documents (files without the `<!-- specdrift v1 -->` declaration are silently skipped)
 
 #### Example: Claude Code custom command
 
@@ -168,3 +207,10 @@ A few practical tips:
 - **Scope annotations narrowly** — annotate the specific section that discusses a file, not the entire document
 - **Use nesting for hierarchical specs** — outer scope for the module, inner scopes for individual files
 - **Don't annotate every file** — focus on files where the intent matters (handlers, core logic), not boilerplate
+- **Multiple documents can reference the same source** — this is normal and expected (e.g., a design doc and a rule doc may both track the same file)
+
+#### Choosing What to Annotate
+
+- Annotate when a document describes **how to use** a specific source file
+- Don't annotate when a document explains **general concepts** without depending on specific implementations
+- Don't annotate indirectly related files — it creates noise and false drift signals
